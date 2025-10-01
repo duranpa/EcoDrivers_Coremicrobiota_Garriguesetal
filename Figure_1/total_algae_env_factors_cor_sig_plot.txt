@@ -1,0 +1,14 @@
+node1	node2	edge	sig	Category
+total_green_algae	Calcium	-0.189616809	0.001092765	Soil_properties
+total_green_algae	Dewpoint_avg_Week1	0.050150144	0.005775724	Climatic_conditions
+total_green_algae	Dewpoint_avg_Week2	0.107975465	0.015980845	Climatic_conditions
+total_green_algae	Organic_carbon	-0.17651421	0.001204306	Soil_properties
+total_green_algae	PCoA1_plant_communities	-0.048249967	0.018994708	Plant_diversity
+total_green_algae	Precipitation_Week3	-0.106517863	0.049193201	Climatic_conditions
+total_green_algae	Soil_organic_matter	-0.176555799	0.001201412	Soil_properties
+total_green_algae	Temp_avg_Week1	0.053619793	0.016915372	Climatic_conditions
+total_green_algae	Total_nitrogen	-0.137247671	0.001772396	Soil_properties
+total_green_algae	WHC	-0.035466495	0.041475264	Soil_properties
+total_green_algae	Wind_high_Week3	0.062419467	0.000392292	Climatic_conditions
+total_green_algae	Wind_low_Week2	0.184363428	0.003568506	Climatic_conditions
+total_green_algae	Wind_low_Week3	0.19082091	0.011550778	Climatic_conditions
