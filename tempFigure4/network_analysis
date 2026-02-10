@@ -1,0 +1,455 @@
+
+# Network Analysis
+
+library(igraph)
+library(dplyr)
+library(stringr)
+library(agricolae)
+
+# Define taxonomic core groups associated colors
+group <- c("Burkholderiales", "Caulobacterales", "Frankiales", "Microtrichales",
+           "Propionibacteriales", "Helotiales", "Hypocreales", "Pleosporales",
+           "Rhizobiales", "Sphingomonadales", "Xanthomonadales", "Chaetothyriales",
+           "Solirubrobacterales", "Chloroflexales", "Gemmatimonadales", "Micrococcales",
+           "Pseudonocardiales", "Xylariales")
+
+color <- c("#B5EAD7", "#FFDAC1", "#FF9AA2", "#C7CEEA",
+           "#FFB7B2", "#F1F0C0", "#B0E0A8", "#F6C6EA",
+           "#C4F0C5", "#E6D0DE", "#FFD3B6", "#E0BBE4", "#D1F5D3",
+           "#FFE0AC", "#E2F0CB", "#D3E5FF", "#FDE2E4", "#e3daff" )
+
+group <- c("Burkholderiales", "Caulobacterales", "Microtrichales",
+           "Propionibacteriales", "Helotiales", "Hypocreales", "Pleosporales",
+           "Rhizobiales", "Sphingomonadales",  "Chaetothyriales",
+           "Solirubrobacterales", 
+           "Xylariales")
+color <- c("#B5EAD7", "#FFDAC1", "#C7CEEA",
+           "#FFB7B2", "#F1F0C0", "#B0E0A8", "#F6C6EA",
+           "#C4F0C5", "#E6D0DE", "#E0BBE4", 
+           "#D1F5D3",  
+           "#e3daff" )
+
+group_colors <- setNames(color, group)  
+
+# List and sort edge and node files by bootstrap ID
+edge_files <- list.files(pattern = "^edge_full_(\\d{1,2})\\.txt$")
+node_files <- list.files(pattern = "^node_full_(\\d{1,2})\\.txt$")
+
+extract_bootstrap_id <- function(x) {
+  as.numeric(sub(".*node_full_(\\d+)\\.txt$", "\\1", x))
+}
+extract_bootstrap_id_edge <- function(x) {
+  as.numeric(sub(".*edge_full_(\\d+)\\.txt$", "\\1", x))
+}
+sorted_edge_files <- edge_files[order(sapply(edge_files, extract_bootstrap_id_edge))]
+sorted_node_files <- node_files[order(sapply(node_files, extract_bootstrap_id))]
+
+# Build igraph objects for each bootstrap
+graph_list <- list()
+
+for (i in seq_along(sorted_edge_files)) {
+  edge_file <- sorted_edge_files[i]
+  node_file <- sorted_node_files[i]
+  
+  edges <- read.table(edge_file, header = TRUE, sep = "\t")
+  nodes <- read.table(node_file, header = TRUE, sep = "\t")
+  
+  nodes$Order <- trimws(nodes$Order)
+  nodes$color <- group_colors[nodes$Order]
+  nodes$color[is.na(nodes$color)] <- "grey"
+  
+  g <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+  V(g)$color <- V(g)$color
+  
+  bootstrap_id <- extract_bootstrap_id_edge(edge_file)
+  graph_list[[paste0("B", bootstrap_id)]] <- g
+}
+
+# Plot one example graph (B20) with node labels
+g <- graph_list[["B2"]]
+V(g)$label <- sapply(strsplit(V(g)$name, " \\| "), `[`, 4)
+V(g)$label <- trimws(V(g)$label)
+V(g)$label[V(g)$color == "grey"] <- ""
+
+plot(g,
+     layout = layout_with_fr(g),
+     vertex.size = 6,
+     vertex.label = V(g)$label,
+     vertex.label.cex = 0.6,
+     vertex.label.color = "black",
+     edge.color = "gray80",
+     edge.width = 0.4)
+
+
+# Calculate centrality metrics for each node in all bootstraps
+centrality_results <- list()
+
+for (name in names(graph_list)) {
+  g <- graph_list[[name]]
+  
+  degree_centrality <- degree(g)
+  closeness_centrality <- closeness(g, normalized = TRUE)
+  betweenness_centrality <- betweenness(g, normalized = TRUE)
+  
+  df <- data.frame(
+    Bootstrap = name,
+    Node = names(degree_centrality),
+    Degree = degree_centrality,
+    Closeness = closeness_centrality,
+    Betweenness = betweenness_centrality
+  )
+  
+  centrality_results[[name]] <- df
+}
+
+# Combine centrality results across all bootstraps
+centrality_all <- do.call(rbind, centrality_results)
+centrality_all$Order <- sapply(strsplit(centrality_all$Node, " \\| "), `[`, 4)
+
+# Core taxonomic orders
+#core_orders <- c("Burkholderiales", "Caulobacterales", "Frankiales", "Microtrichales",
+#                 "Propionibacteriales", "Helotiales", "Hypocreales", "Pleosporales",
+#                 "Rhizobiales", "Sphingomonadales", "Xanthomonadales", "Chaetothyriales",
+#                 "Solirubrobacterales", "Chloroflexales", "Gemmatimonadales", "Micrococcales",
+#                 "Pseudonocardiales", "Xylariales")
+core_orders <- c("Burkholderiales", "Caulobacterales", "Microtrichales",
+  "Propionibacteriales", "Helotiales", "Hypocreales", "Pleosporales",
+  "Rhizobiales", "Sphingomonadales",  "Chaetothyriales",
+  "Solirubrobacterales", 
+  "Xylariales")
+# Annotate centrality table with core/non-core classification
+centrality_all <- centrality_all %>%
+  mutate(
+    Order = trimws(Order),
+    State = if_else(Order %in% core_orders, "Core", "Non-core")
+  ) %>%
+  filter(Betweenness > 0, Closeness > 0)
+write.table(centrality_all, "centrality_parameters_fullnetwork.txt", sep="\t")
+# Create separate dataframes 
+all_data <- centrality_all %>%
+  mutate(State = "All")
+core <- centrality_all %>%
+  filter(State == "Core") %>%
+  mutate(State = "Core")
+non_core <- centrality_all %>%
+  filter(State == "Non-core") %>%
+  mutate(State = "Non_core")
+
+# Statistical comparison of centrality metrics across groups (Kruskal-Wallis)
+combined_data <- bind_rows(all_data, core, non_core)
+
+dg  <- kruskal(combined_data$Degree, combined_data$State, alpha = 0.05, p.adj = "bonferroni")$groups
+bt  <- kruskal(combined_data$Betweenness, combined_data$State, alpha = 0.05, p.adj = "bonferroni")$groups
+clo <- kruskal(combined_data$Closeness,   combined_data$State, alpha = 0.05, p.adj = "bonferroni")$groups
+dg; clo; bt
+
+combined_data$Degree groups
+Non_core             22702.53      a
+All                  22293.50      b
+Core                 21881.56      c
+combined_data$Closeness groups
+Non_core                22747.42      a
+All                     22293.50      b
+Core                    21836.36      c
+combined_data$Betweenness groups
+Non_core                  22409.92      a
+All                       22293.50      a
+Core                      22176.25      a
+
+# Calculate coefficient of variation by Bootstrap, State and Metrics
+cv_results <- combined_data %>%
+  pivot_longer(cols = c(Degree, Closeness, Betweenness),
+               names_to = "Metrics", values_to = "Value") %>%
+  group_by(Bootstrap, State, Metrics) %>%
+  summarise(Coeff_variation = sd(Value, na.rm = TRUE) / mean(Value, na.rm = TRUE), .groups = "drop")
+
+ggplot(cv_results, aes(x = State, y = Coeff_variation, fill = State)) +
+  geom_boxplot(alpha = 0.6, width = 0.6, outlier.shape = 21, outlier.size = 1.5, color = "black") +
+  facet_wrap(~Metrics, scales = "free_y") +
+  labs(y = "Coefficient of Variation") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),legend.position = "none")
+
+
+# Test 
+test <- cv_results %>% 
+  filter(State == "Core" | State == "Non_core" | State == "All")
+test <- test %>%
+  pivot_wider(names_from = Metrics,values_from = Coeff_variation)
+test <- test %>%
+  select(State, Bootstrap, Betweenness, Closeness, Degree)
+
+
+anova_bet <- aov(Betweenness ~ State, data = test)
+anova_clo <- aov(Closeness ~ State, data = test)
+anova_dg <- aov(Degree ~ State, data = test)
+summary(anova_bet); summary(anova_clo); summary(anova_dg)
+
+Df  Sum Sq   Mean Sq F value Pr(>F)
+State        2 0.00079 0.0003974   0.372  0.691
+Residuals   57 0.06084 0.0010673               
+Df   Sum Sq   Mean Sq F value Pr(>F)
+State        2 0.000002 1.190e-06    0.02   0.98
+Residuals   57 0.003433 6.023e-05               
+Df  Sum Sq  Mean Sq F value Pr(>F)
+State        2 0.00001 0.000005   0.003  0.997
+Residuals   57 0.10851 0.001904               
+
+##centrality
+centrality<- read.table("centrality_parameters_fullnetwork.txt", header=TRUE, sep="\t")
+
+colors <- data.frame(group=c("Burkholderiales","Caulobacterales","Chaetothyriales","Helotiales", "Hypocreales","Microtrichales","non-core",
+                             "Pleosporales","Propionibacteriales", "Rhizobiales","Solirubrobacterales","Sphingomonadales",  
+                              "Xylariales"),
+                     color=c("#8bbfb1","#8ac095","#737c64","#a7c0cf","#7c6473", "#b9e0a3","#d9d9d9",
+                             "#d0a8bf","#fffab4","#fcddb3","#b38e8e","#d9a28f","#bfd0a7"  ))
+
+centrality$Order <- factor(centrality$Order,
+                           levels = names(sort(tapply(centrality$Degree, centrality$Order, mean), decreasing = TRUE)))
+
+p<- ggplot(centrality, aes(x = Order, y = Degree, color = for_color))+
+  geom_point(size=2, alpha=0.3)+
+  geom_hline(yintercept = mean(centrality$Degree), linetype='dotted', col = 'black')+
+  scale_color_manual(values=as.character(colors$color)) +
+  labs(y=paste("Degree"), x=paste("Microbial orders"))+
+  #geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.1, position=position_dodge(0.9))+
+  theme(axis.text.x = element_text(size=10, angle=90, hjust=1),
+        axis.text.y = element_text(size=12),
+        axis.title=element_text(size=14),
+        panel.grid.minor = element_blank(), 
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+p
+
+centrality$Order <- factor(centrality$Order,
+                           levels = names(sort(tapply(centrality$Closeness, centrality$Order, mean), decreasing = TRUE)))
+
+p<- ggplot(centrality, aes(x = Order, y = Closeness, color = for_color))+
+  geom_point(size=2, alpha=0.3)+
+  geom_hline(yintercept = mean(centrality$Closeness), linetype='dotted', col = 'black')+
+  scale_color_manual(values=as.character(colors$color)) +
+  labs(y=paste("Closeness"), x=paste("Microbial orders"))+
+  #geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.1, position=position_dodge(0.9))+
+  theme(axis.text.x = element_text(size=10, angle=90, hjust=1),
+        axis.text.y = element_text(size=12),
+        axis.title=element_text(size=14),
+        panel.grid.minor = element_blank(), 
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+p
+
+centrality$Order <- factor(centrality$Order,
+                           levels = names(sort(tapply(centrality$Betweenness, centrality$Order, mean), decreasing = TRUE)))
+
+p<- ggplot(centrality, aes(x = Order, y = Betweenness, color = for_color))+
+  geom_point(size=2, alpha=0.3)+
+  geom_hline(yintercept = mean(centrality$Betweenness), linetype='dotted', col = 'black')+
+  scale_color_manual(values=as.character(colors$color)) +
+  labs(y=paste("Betweenness"), x=paste("Microbial orders"))+
+  #geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.1, position=position_dodge(0.9))+
+  theme(axis.text.x = element_text(size=10, angle=90, hjust=1),
+        axis.text.y = element_text(size=12),
+        axis.title=element_text(size=14),
+        panel.grid.minor = element_blank(), 
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+p
+
+
+##statistical test
+permutation_test_by_group <- function(data,
+                                      group_col = "Order",
+                                      property_col = "Betweenness",
+                                      n_perm = 10000,
+                                      alternative = "two.sided",
+                                      seed = 123) {
+  set.seed(seed)
+  
+  # Coerce to vector
+  obs_values <- as.vector(unlist(data[[property_col]]))
+  groups <- as.vector(unlist(data[[group_col]]))
+  
+  # Remove NAs
+  valid_idx <- complete.cases(obs_values, groups)
+  obs_values <- obs_values[valid_idx]
+  groups <- groups[valid_idx]
+  
+  # Ensure matching lengths now
+  stopifnot(length(obs_values) == length(groups))
+  
+  # Observed means
+  group_means <- tapply(obs_values, groups, mean)
+  group_sizes <- table(groups)
+  group_levels <- names(group_means)
+  
+  # Null distributions via permutation
+  perm_means <- replicate(n_perm, {
+    permuted <- sample(obs_values)
+    tapply(permuted, groups, mean)
+  })
+  
+  # p-values
+  pvals <- sapply(seq_along(group_means), function(i) {
+    obs <- group_means[i]
+    perm <- perm_means[i, ]
+    
+    if (alternative == "greater") {
+      mean(perm >= obs)
+    } else if (alternative == "less") {
+      mean(perm <= obs)
+    } else {
+      mean(abs(perm - mean(perm)) >= abs(obs - mean(perm)))
+    }
+  })
+  
+  p_adj <- p.adjust(pvals, method = "BH")
+  
+  data.frame(
+    Group = group_levels,
+    Observed_Mean = as.numeric(group_means),
+    N_in_Group = as.integer(group_sizes[group_levels]),
+    P_value = pvals,
+    P_adj = p_adj,
+    stringsAsFactors = FALSE
+  )
+}
+result_bet_high <- permutation_test_by_group(
+  data = centrality,
+  group_col = "Order",           # or "Order", "for_color", etc.
+  property_col = "Betweenness",       # or "Closeness", "Betweenness"
+  n_perm = 10000,
+  alternative = "greater"
+)
+result_bet_lower <- permutation_test_by_group(
+  data = centrality,
+  group_col = "Order",           # or "Order", "for_color", etc.
+  property_col = "Betweenness",       # or "Closeness", "Betweenness"
+  n_perm = 10000,
+  alternative = "less"
+)
+
+result_clos_high <- permutation_test_by_group(
+  data = centrality,
+  group_col = "Order",           # or "Order", "for_color", etc.
+  property_col = "Closeness",       # or "Closeness", "Betweenness"
+  n_perm = 10000,
+  alternative = "greater"
+)
+result_clos_low <- permutation_test_by_group(
+  data = centrality,
+  group_col = "Order",           # or "Order", "for_color", etc.
+  property_col = "Closeness",       # or "Closeness", "Betweenness"
+  n_perm = 10000,
+  alternative = "less"
+)
+result_degree_high <- permutation_test_by_group(
+  data = centrality,
+  group_col = "Order",           # or "Order", "for_color", etc.
+  property_col = "Degree",       # or "Closeness", "Betweenness"
+  n_perm = 10000,
+  alternative = "greater"
+)
+
+result_degree_low <- permutation_test_by_group(
+  data = centrality,
+  group_col = "Order",           # or "Order", "for_color", etc.
+  property_col = "Degree",       # or "Closeness", "Betweenness"
+  n_perm = 10000,
+  alternative = "less"
+)
+
+ write.table(result_bet_high, "result_bet_high.txt", sep="\t")
+ write.table(result_bet_lower, "result_bet_lower.txt", sep="\t")
+ write.table(result_clos_high, "result_clos_high.txt", sep="\t")
+ write.table(result_clos_low, "result_clos_lower.txt", sep="\t")
+ write.table(result_degree_high, "result_degree_high.txt", sep="\t")
+ write.table(result_degree_low, "result_degree_lower.txt", sep="\t")
+ 
+ #test core vs chance
+ permutation_test_by_group <- function(data,
+                                       group_col = "State",
+                                       property_col = "Betweenness",
+                                       n_perm = 10000,
+                                       alternative = "two.sided",
+                                       seed = 123) {
+   set.seed(seed)
+   
+   # Coerce to vector
+   obs_values <- as.vector(unlist(data[[property_col]]))
+   groups <- as.vector(unlist(data[[group_col]]))
+   
+   # Remove NAs
+   valid_idx <- complete.cases(obs_values, groups)
+   obs_values <- obs_values[valid_idx]
+   groups <- groups[valid_idx]
+   
+   # Ensure matching lengths now
+   stopifnot(length(obs_values) == length(groups))
+   
+   # Observed means
+   group_means <- tapply(obs_values, groups, mean)
+   group_sizes <- table(groups)
+   group_levels <- names(group_means)
+   
+   # Null distributions via permutation
+   perm_means <- replicate(n_perm, {
+     permuted <- sample(obs_values)
+     tapply(permuted, groups, mean)
+   })
+   
+   # p-values
+   pvals <- sapply(seq_along(group_means), function(i) {
+     obs <- group_means[i]
+     perm <- perm_means[i, ]
+     
+     if (alternative == "greater") {
+       mean(perm >= obs)
+     } else if (alternative == "less") {
+       mean(perm <= obs)
+     } else {
+       mean(abs(perm - mean(perm)) >= abs(obs - mean(perm)))
+     }
+   })
+   
+   p_adj <- p.adjust(pvals, method = "BH")
+   
+   data.frame(
+     Group = group_levels,
+     Observed_Mean = as.numeric(group_means),
+     N_in_Group = as.integer(group_sizes[group_levels]),
+     P_value = pvals,
+     P_adj = p_adj,
+     stringsAsFactors = FALSE
+   )
+ }
+ 
+ result_degree_core_noncore <- permutation_test_by_group(
+   data = centrality,
+   group_col = "State",           # or "Order", "for_color", etc.
+   property_col = "Degree",       # or "Closeness", "Betweenness"
+   n_perm = 10000,
+   alternative = "two.sided"
+ )
+ 
+ result_clos_core_noncore <- permutation_test_by_group(
+   data = centrality,
+   group_col = "State",           # or "Order", "for_color", etc.
+   property_col = "Closeness",       # or "Closeness", "Betweenness"
+   n_perm = 10000,
+   alternative = "two.sided"
+ )
+ 
+ result_bet_core_noncore <- permutation_test_by_group(
+   data = centrality,
+   group_col = "State",           # or "Order", "for_color", etc.
+   property_col = "Betweenness",       # or "Closeness", "Betweenness"
+   n_perm = 10000,
+   alternative = "two.sided"
+ )
+ 
+ write.table(result_bet_core_noncore, "result_bet_core_noncore.txt", sep="\t")
+ write.table(result_clos_core_noncore, "result_clos_core_noncore.txt", sep="\t")
+ write.table(result_degree_core_noncore, "result_degree_core_noncore.txt", sep="\t")
