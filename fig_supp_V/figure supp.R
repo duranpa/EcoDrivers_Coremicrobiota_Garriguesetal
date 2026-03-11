@@ -145,19 +145,24 @@ node_C3_F$Core_status <- ifelse(node_C3_F$Order %in% group,
 ##### plot pour core vs non core
 node_scaled <- node_C3_F %>%
        mutate(across(
-             c(BetweennessCentrality, Degree, ClosenessCentrality),
-             ~ (. - min(., na.rm = TRUE)) /
-                   (max(., na.rm = TRUE) - min(., na.rm = TRUE)),
-             .names = "{.col}_scaled"
-         ))
+    c(BetweennessCentrality, Degree, ClosenessCentrality, AverageShortestPathLength, ClusteringCoefficient,Eccentricity,NeighborhoodConnectivity,TopologicalCoefficient ),
+    ~ (. - min(., na.rm = TRUE)) /
+      (max(., na.rm = TRUE) - min(., na.rm = TRUE)),
+    .names = "{.col}_scaled"
+  ))
 
 summary_scaled <- node_scaled %>%
-       group_by(Core_status) %>%
-       summarise(
-            Betweenness = mean(BetweennessCentrality_scaled, na.rm = TRUE),
-            Degree      = mean(Degree_scaled, na.rm = TRUE),
-            Closeness   = mean(ClosenessCentrality_scaled, na.rm = TRUE)
-         )
+  group_by(Core_status) %>%
+  summarise(
+    Betweenness = mean(BetweennessCentrality_scaled, na.rm = TRUE),
+    Degree      = mean(Degree_scaled, na.rm = TRUE),
+    Closeness   = mean(ClosenessCentrality_scaled, na.rm = TRUE),
+    AvgShortPath =mean(AverageShortestPathLength_scaled, na.rm = TRUE),
+    ClusteringCoef =mean(ClusteringCoefficient_scaled, na.rm = TRUE), 
+    Eccentricity =mean(Eccentricity_scaled, na.rm = TRUE), 
+    NeighConnectivity =mean(NeighborhoodConnectivity_scaled, na.rm = TRUE), 
+    TopologicalCoef =mean(TopologicalCoefficient_scaled, na.rm = TRUE),
+  )
 
 
 radar_long <- summary_scaled %>%
@@ -169,7 +174,7 @@ radar_long <- summary_scaled %>%
 
 radar_long$Metric <- factor(
   radar_long$Metric,
-  levels = c("Betweenness", "Degree", "Closeness")
+  levels = c("Betweenness", "Degree", "Closeness", "AvgShortPath","ClusteringCoef", "Eccentricity","NeighConnectivity", "TopologicalCoef" )
 )
 
 
@@ -186,14 +191,14 @@ radar_data <- rbind(
 )
 
 # Colors
-colors <- c("red", "blue")  # Core, Non_Core
+colors <- c("#000000", "#808080")  # Core, Non_Core
 
 # Plot
 radarchart(radar_data, 
            pcol = colors, 
            pfcol = scales::alpha(colors, 0.3), 
            plwd = 2,
-           title = "Radar chart Core vs Non core (cluster 3)",
+           title = "Core vs Non core (cluster 3)",
            cglcol = "grey", 
            cglty = 1, 
            axislabcol = "grey", 
@@ -230,11 +235,16 @@ selected_orders <- c("Burkholderiales", "Caulobacterales", "Microtrichales",
 color_map <- setNames(color, group)
 
 # Normalisation
-node_scaled <- node_C1_F %>%
+node_scaled <- node_C3_F %>%
   mutate(
     Betweenness = rescale(BetweennessCentrality),
     Degree = rescale(Degree),
-    Closeness = rescale(ClosenessCentrality)
+    Closeness = rescale(ClosenessCentrality),
+    AvgShortPath =rescale(AverageShortestPathLength),
+    ClusteringCoef =rescale(ClusteringCoefficient), 
+    Eccentricity =rescale(Eccentricity), 
+    NeighConnectivity =rescale(NeighborhoodConnectivity), 
+    TopologicalCoef =rescale(TopologicalCoefficient),
   )
 
 # Mean by Order 
@@ -245,6 +255,11 @@ core_summary <- node_scaled %>%
     Betweenness = mean(Betweenness),
     Degree = mean(Degree),
     Closeness = mean(Closeness),
+    AvgShortPath =mean(AvgShortPath),
+    ClusteringCoef =mean(ClusteringCoef), 
+    Eccentricity =mean(Eccentricity), 
+    NeighConnectivity =mean(NeighConnectivity), 
+    TopologicalCoef =mean(TopologicalCoef),
     .groups = "drop"
   )
 
@@ -254,7 +269,12 @@ noncore_summary <- node_scaled %>%
   summarise(
     Betweenness = mean(Betweenness),
     Degree = mean(Degree),
-    Closeness = mean(Closeness)
+    Closeness = mean(Closeness),
+    AvgShortPath =mean(AvgShortPath),
+    ClusteringCoef =mean(ClusteringCoef), 
+    Eccentricity =mean(Eccentricity), 
+    NeighConnectivity =mean(NeighConnectivity), 
+    TopologicalCoef =mean(TopologicalCoef),
   ) %>%
   mutate(Order = "Non_Core")
 
@@ -270,7 +290,7 @@ radar_data <- rbind(
 )
 
 
-plot_colors <- c(color_map[rownames(radar_wide)[-nrow(radar_wide)]], "black")
+plot_colors <- c(color_map[rownames(radar_wide)[-nrow(radar_wide)]], "#808080")
 
 # Plot
 par(mar = c(1,1,3,1))
@@ -278,7 +298,7 @@ radarchart(radar_data,
            pcol = plot_colors,
            plwd = 2,
            plty = 1,
-           title = "Radar chart Core vs Non core for cluster 1",
+           title = "Core vs Non core for cluster 1",
            cglcol = "grey",
            cglty = 1,
            axislabcol = "grey",
@@ -292,3 +312,4 @@ legend("topright",
        cex = 0.6,
        ncol = 2,
        bty = "n")
+
