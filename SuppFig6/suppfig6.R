@@ -1,5 +1,5 @@
 ##supplementary figure 6
-
+##data in figure4 folder
 library(GUniFrac)
 library(vegan)
 library(plyr)
