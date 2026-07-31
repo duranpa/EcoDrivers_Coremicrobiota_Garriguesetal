@@ -30,8 +30,9 @@ sd<- ddply(points3, c("Group.1", "Site"), summarise, N=length(value), mean=mean(
 sd<- na.omit(sd)
 p<- ggplot(sd, aes(x = reorder(Site, -mean), y = mean, fill=Group.1))+
   geom_bar(stat = "identity", colour="black")+
-  scale_fill_brewer(palette = "YlGn")+
+  scale_fill_brewer(palette = "Accent")+
   labs(y=paste("Relative abundance(%)"), x=paste("SW sites"),fill = "Algal class", size=16)+
+  theme_bw()+
   theme(axis.text.x = element_blank(), 
         axis.text.y = element_text(size=14),
         axis.title = element_text(size=16),
@@ -92,7 +93,8 @@ p<- ggplot(total_algae_env_factors_cor_sig, aes(x = reorder(node2, -edge), y = e
   geom_bar(stat = "identity", colour="black")+
   scale_fill_manual(values=as.character(colors$color))+
   labs(y=paste("Spearman's rho"), x=paste("Environmental factor"))+
-  theme(axis.text.x = element_text(size=10, angle=45, hjust=1), 
+  theme_bw()+
+  theme(axis.text.x = element_text(size=12, angle=45, hjust=1), 
         axis.text.y = element_text(size=12),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -144,8 +146,9 @@ p<- ggplot(algal_classes_env_factors_cor_sig, aes(x = Factor, y = Algal_class, f
     midpoint = 0
   )+
   facet_grid(.~Category, scale="free_x", space="free_x")+
-  labs(y=paste("Algal class"), x=paste("Environmental factor"), fill="Factor category", size="Spearman's rho")+
-  theme(axis.text.x = element_text(size=10, angle=45, hjust=1), 
+  labs(y=paste("Algal class"), x=paste("Environmental factor"), fill="Spearman's rho")+
+  theme_bw()+
+  theme(axis.text.x = element_text(size=11, angle=45, hjust=1), 
         axis.text.y = element_text(size=12),
         axis.title=element_text(size=14), 
         panel.grid.major = element_blank(),
