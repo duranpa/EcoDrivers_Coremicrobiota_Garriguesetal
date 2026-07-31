@@ -5,6 +5,7 @@ library(vegan)
 library(plyr)
 library(dplyr)
 library(reshape2)
+library(grid)
 
 design<- read.table("design_noempty_bac.txt", header=TRUE, sep="\t")
 asv_table<- read.table("asv_table_bac.txt", header=TRUE, sep="\t")
@@ -29,20 +30,21 @@ level <- which(colnames(taxonomy)=="core")
 asv_table_fam<- aggregate(asv_table_norm, by=list(taxonomy[, level]), FUN=sum)
 otu_long <- melt(asv_table_fam, id.vars = "Group.1", variable.name = "Sample")
 points <- cbind(otu_long, design[match(otu_long$Sample, design$SampleID), ])
-points_core <- points[!(points$Group.1 %in% c("non-core")),]
+points_core_bac <- points[!(points$Group.1 %in% c("non-core")),]
 
-sd<- ddply(points_core, c("Group.1", "Site"), summarise, N=length(value), mean=mean(value), sd=sd(value), se=sd/sqrt(N))
+sd_bact<- ddply(points_core_bac, c("Group.1", "Site"), summarise, N=length(value), mean=mean(value), sd=sd(value), se=sd/sqrt(N))
 colors <- data.frame(group=c("Burkholderiales","Caulobacterales","Microtrichales",
                              "Propionibacteriales", "Rhizobiales","Solirubrobacterales","Sphingomonadales"),
                      color=c("#8bbfb1","#8ac095","#b9e0a3",
                              "#fffab4","#fcddb3","#b38e8e","#d9a28f"))
 
 
-p<- ggplot(sd, aes(x = Site, y = mean, fill = Group.1))+
+p<- ggplot(sd_bact, aes(x = Site, y = mean, fill = Group.1))+
   geom_bar(stat = "identity", colour="black")+
   scale_fill_manual(values=as.character(colors$color)) +
   labs(y=paste("Average relative abundance(%)"), x=paste("Site"), fill="Core group")+
-  theme(axis.text.x = element_blank(),
+  coord_flip() +
+  theme(axis.text.y = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         panel.border = element_blank(),
@@ -51,7 +53,7 @@ p<- ggplot(sd, aes(x = Site, y = mean, fill = Group.1))+
         legend.title = element_text(size=14), axis.title=element_text(size=14),)
 p
 
-#figure2b
+#figure2c
 design<- read.table("design_noempty_fun.txt", header=TRUE, sep="\t")
 asv_table<- read.table("asv_table_fun.txt", header=TRUE, sep="\t")
 taxonomy<- read.table("taxonomy_mod_fun.txt", header=TRUE, sep="\t")
@@ -75,19 +77,20 @@ level <- which(colnames(taxonomy)=="core")
 asv_table_fam<- aggregate(asv_table_norm, by=list(taxonomy[, level]), FUN=sum)
 otu_long <- melt(asv_table_fam, id.vars = "Group.1", variable.name = "Sample")
 points <- cbind(otu_long, design[match(otu_long$Sample, design$SampleID), ])
-points_core <- points[!(points$Group.1 %in% c("non-core")),]
+points_core_fun <- points[!(points$Group.1 %in% c("non-core")),]
 
-sd<- ddply(points_core, c("Group.1", "Site"), summarise, N=length(value), mean=mean(value), sd=sd(value), se=sd/sqrt(N))
+sd_fun<- ddply(points_core_fun, c("Group.1", "Site"), summarise, N=length(value), mean=mean(value), sd=sd(value), se=sd/sqrt(N))
 colors <- data.frame(group=c("Chaetothyriales","Helotiales", "Hypocreales",
                              "Pleosporales","Xylariales"),
                      color=c("#737c64","#a7c0cf","#7c6473", 
                              "#d0a8bf","#bfd0a7"))
 
-p<- ggplot(sd, aes(x = Site, y = mean, fill = Group.1))+
+p<- ggplot(sd_fun, aes(x = Site, y = mean, fill = Group.1))+
   geom_bar(stat = "identity", colour="black")+
   scale_fill_manual(values=as.character(colors$color)) +
   labs(y=paste("Average relative abundance(%)"), x=paste("Site"), fill="Core group")+
-  theme(axis.text.x = element_blank(),
+  coord_flip() +
+  theme(axis.text.y = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         panel.border = element_blank(),
@@ -112,14 +115,40 @@ number_sites$core<- factor(number_sites$core, levels=c("Burkholderiales",
                                                          "Sphingomonadales",
                                                          "Xylariales"))
 
-colors <- data.frame(group=c("Burkholderiales","Caulobacterales","Chaetothyriales","Helotiales", "Hypocreales","Microtrichales","non-core",
-                             "Pleosporales","Propionibacteriales", "Rhizobiales","Solirubrobacterales","Sphingomonadales",  
-                             "Xylariales"),
-                     color=c("#8bbfb1","#8ac095","#737c64","#a7c0cf","#7c6473", "#b9e0a3","#d9d9d9",
-                             "#d0a8bf","#fffab4","#fcddb3","#b38e8e","#d9a28f","#bfd0a7"))
+
+sd<- ddply(number_sites, c("core", "range", "Kingdom"), summarise, N=length(number_sites))
+sd$range <- factor(sd$range ,
+                     levels = c("80-90%",
+                                "70-80%",
+                                "60-70%",
+                                "50-60%",
+                                "40-50%",
+                                "30-40%",
+                                "20-30%",
+                                "10-20%",
+                                "5-10%",
+                                "1-5%",
+                                "0-1%"
+                     ))
+
+grad_cols <- colorRampPalette(c("#2986CC", "#e9f2f9"))(length(levels(sd$range)))
+p<- ggplot(sd, aes(x = core, y = N, fill=range))+
+  geom_bar(stat = "identity", colour="black") +
+  scale_fill_viridis_d(option = "G")+
+  labs(y=paste("Number of ASVs"))+
+  scale_y_log10()+
+  theme(axis.text.x = element_text(size=12, angle=45, hjust=1),
+        axis.text.y = element_text(size=12),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "right",
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank(), legend.text = element_text(size=12), 
+  )
+p+facet_grid(~Kingdom,scales="free_x", space="free")
 
 
-p<- ggplot(number_sites, aes(x = core, y = number_sites))+
+p<- ggplot(sd, aes(x = core, y = range))+
   geom_violin()+
   geom_point(position = position_jitter(seed = 1, width = 0.3), color="black",alpha=0.2) +
   labs(y=paste("Number of sites (log10 transformed)"))+
