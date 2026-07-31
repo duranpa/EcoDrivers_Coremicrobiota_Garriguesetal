@@ -1,4 +1,4 @@
-##supplementary figure 5
+##supplementary figure 6
 
 library(GUniFrac)
 library(vegan)
@@ -6,6 +6,7 @@ library(plyr)
 library(dplyr)
 library(reshape2)
 
+##files are in folder of figure3
 design_bac<- read.table("design_noempty_bac.txt", header=TRUE, sep="\t")
 asv_table_bac<- read.table("asv_table_bac.txt", header=TRUE, sep="\t")
 taxonomy_bac<- read.table("taxonomy_mod_bac.txt", header=TRUE, sep="\t")
