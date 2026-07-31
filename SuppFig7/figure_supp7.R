@@ -6,6 +6,7 @@ library(vegan)
 library(tidyverse)
 
 ## load data
+##files in figure5 folder
 cluster <- read.table("20250818_clusters_env_factors.txt", header = TRUE, sep = "\t",stringsAsFactors = FALSE)
 cluster <- cluster[,-1]
 
