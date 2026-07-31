@@ -1,11 +1,12 @@
-##Figure3
-#Figure3a
+##Figure4
+#Figure4a
 library(GUniFrac)
 library(vegan)
 library(plyr)
 library(dplyr)
 library(reshape2)
 
+##files are in the figure3 folder
 design_bac<- read.table("design_noempty_bac.txt", header=TRUE, sep="\t")
 asv_table_bac<- read.table("asv_table_bac.txt", header=TRUE, sep="\t")
 taxonomy_bac<- read.table("taxonomy_mod_bac.txt", header=TRUE, sep="\t")
@@ -159,7 +160,7 @@ p<- ggplot(cor_core_env, aes(x = Core_group_value, y = Factor, fill=edge))+
         legend.title = element_text(size=14))
 p
 
-#figure 3b
+#figure 4b
 
 ##RA of core ASVs
 otu_long_bac <- melt(asv_table_norm_bac, id.vars = "Group.1", variable.name = "Sample")
