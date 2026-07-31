@@ -1,4 +1,5 @@
 ##rarefaction curves datasets
+##data in other folders
 asv_algae<- read.table("otu_table.txt", header=TRUE, sep="\t")
 
 asv_bac<- read.table("asv_table_bac.txt", header=TRUE, sep="\t")
