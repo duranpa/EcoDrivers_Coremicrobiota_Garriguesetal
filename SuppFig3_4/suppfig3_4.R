@@ -1,4 +1,4 @@
-##supplementary figure 2
+##supplementary figure 3
 library(reshape2)
 library(ggplot2)
 library(plyr)
@@ -43,7 +43,7 @@ p<- ggplot(sd1, aes(x = reorder(Group.1, -mean), y = mean, fill = Algae_group)) 
         panel.background = element_blank())
 p
 
-##supplementary figure 3
+##supplementary figure 4
 
 level <- which(colnames(taxonomy)=="Genus_clean")
 asv_table_fam<- aggregate(asv_table_norm, by=list(taxonomy[, level]), FUN=sum)
