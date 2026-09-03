@@ -121,16 +121,15 @@ node_C2_F <- read_csv("node_C2_F.csv")
 node_C3_F <- read_csv("node_C3_F.csv")
 
 
-group <- c("Burkholderiales", "Caulobacterales", "Frankiales", "Microtrichales",
+group <- c("Burkholderiales", "Caulobacterales", "Microtrichales",
            "Propionibacteriales", "Helotiales", "Hypocreales", "Pleosporales",
-           "Rhizobiales", "Sphingomonadales", "Xanthomonadales", "Chaetothyriales",
-           "Solirubrobacterales", "Chloroflexales", "Gemmatimonadales", "Micrococcales",
-           "Pseudonocardiales", "Xylariales")
+           "Rhizobiales", "Sphingomonadales", "Chaetothyriales",
+           "Solirubrobacterales", "Xylariales")
 
-color <- c("#B5EAD7", "#FFDAC1", "#FF9AA2", "#C7CEEA",
+color <- c("#B5EAD7", "#FFDAC1", "#C7CEEA",
            "#FFB7B2", "#F1F0C0", "#B0E0A8", "#F6C6EA",
-           "#C4F0C5", "#E6D0DE", "#FFD3B6", "#E0BBE4", "#D1F5D3",
-           "#FFE0AC", "#E2F0CB", "#D3E5FF", "#FDE2E4", "#e3daff" )
+           "#C4F0C5", "#E6D0DE", "#E0BBE4", "#D1F5D3",
+           "#e3daff" )
 
 node_C1_F$Core_status <- ifelse(node_C1_F$Order %in% group,
                                 "Core",
@@ -217,16 +216,15 @@ library(fmsb)
 library(scales)
 library(tibble)
 
-group <- c("Burkholderiales", "Caulobacterales", "Frankiales", "Microtrichales",
+group <- c("Burkholderiales", "Caulobacterales", "Microtrichales",
            "Propionibacteriales", "Helotiales", "Hypocreales", "Pleosporales",
-           "Rhizobiales", "Sphingomonadales", "Xanthomonadales", "Chaetothyriales",
-           "Solirubrobacterales", "Chloroflexales", "Gemmatimonadales", "Micrococcales",
-           "Pseudonocardiales", "Xylariales")
+           "Rhizobiales", "Sphingomonadales", "Chaetothyriales",
+           "Solirubrobacterales", "Xylariales")
 
-color <- c("#B5EAD7", "#FFDAC1", "#FF9AA2", "#C7CEEA",
+color <- c("#B5EAD7", "#FFDAC1", "#C7CEEA",
            "#FFB7B2", "#F1F0C0", "#B0E0A8", "#F6C6EA",
-           "#C4F0C5", "#E6D0DE", "#FFD3B6", "#E0BBE4", "#D1F5D3",
-           "#FFE0AC", "#E2F0CB", "#D3E5FF", "#FDE2E4", "#e3daff")
+           "#C4F0C5", "#E6D0DE", "#E0BBE4", "#D1F5D3",
+           "#e3daff" )
 
 selected_orders <- c("Burkholderiales", "Caulobacterales", "Microtrichales",
                      "Propionibacteriales", "Rhizobiales", "Solirubrobacterales",
